@@ -21,19 +21,22 @@ COSMIC_MUTATION_TYPES = [
     "T[T>A]A", "T[T>A]C", "T[T>A]G", "T[T>A]T", "T[T>C]A", "T[T>C]C",
     "T[T>C]G", "T[T>C]T", "T[T>G]A", "T[T>G]C", "T[T>G]G", "T[T>G]T"
 ]
+COSMIC_MUTATION_TYPES_SBS6 = [
+        "C>A", "C>G", "C>T", "T>A", "T>C", "T>G"
+]
 COUNTS_DF_PATH = "data/brca/matrices/sigmatrix_96.csv"
 
 SIGNATURES_COLORS = [
-    ((0.196,0.714,0.863),),  # COSMIC blue
-    ((0.102,0.098,0.098),),  # black
-    ((0.816,0.180,0.192),),  # COSMIC red
-    ((0.777,0.773,0.757),),  # COSMIC grey
-    ((0.604,0.777,0.408),),  # COSMIC green
-    ((0.902,0.765,0.737),),  # COSMIC pink-ish
+    (0.196,0.714,0.863),  # COSMIC blue
+    (0.102,0.098,0.098),  # black
+    (0.816,0.180,0.192),  # COSMIC red
+    (0.777,0.773,0.757),  # COSMIC grey
+    (0.604,0.777,0.408),  # COSMIC green
+    (0.902,0.765,0.737),  # COSMIC pink-ish
 ]
 SIGNATURES_COLOR_ARRAY = list(
     itertools.chain.from_iterable(
-        color_tuple*16 for color_tuple in SIGNATURES_COLORS
+        (color_tuple,)*16 for color_tuple in SIGNATURES_COLORS
         )
     )
 FIGSIZE_SINGLE_SIGNATURE = (20, 10)
