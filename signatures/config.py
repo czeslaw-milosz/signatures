@@ -3,6 +3,8 @@ import itertools
 DATA_DIR = "data"
 MUTATIONS_FILE_NAME = "simple_somatic_mutation.open.BRCA-EU.tsv"
 COSMIC_FILE_PATH = "resources/data/cosmic/COSMIC_v3.4_SBS_GRCh37.txt"
+BRCA_COUNTS_FILE_PATH = "resources/data/brca/matrices/sigmatrix_96.csv"
+
 COSMIC_MUTATION_TYPES = [
     "A[C>A]A", "A[C>A]C", "A[C>A]G", "A[C>A]T", "A[C>G]A", "A[C>G]C",
     "A[C>G]G", "A[C>G]T", "A[C>T]A", "A[C>T]C", "A[C>T]G", "A[C>T]T",
@@ -42,4 +44,4 @@ SIGNATURES_COLOR_ARRAY = list(
 FIGSIZE_SINGLE_SIGNATURE = (20, 10)
 Y_MARGIN_SINGLE_SIGNATURE = 0.01
 
-RANDOM_SEED = 2137
+RANDOM_SEED = 2137213721372137
