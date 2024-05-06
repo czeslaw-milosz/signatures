@@ -14,24 +14,9 @@ def load_mutation_counts(input_path: str = config.BRCA_COUNTS_FILE_PATH) -> pd.D
     ).rename_axis("Type", axis=0).T
 
 
-# def data_augmentation(X, augmentation=5):
-#     X_augmented=[]
-#     for time in range(augmentation):
-#         X_bootstrapped=[]
-#         for x in X:
-#             N = int(round(np.sum(x)))
-#             p = np.ravel(x/np.sum(x))
-#             print(f"N, p: {(N, p)}")
-#             X_bootstrapped.append(np.random.multinomial(N, p))
-#         X_bootstrapped = np.array(X_bootstrapped)
-#         X_augmented.append(pd.DataFrame(X_bootstrapped))
-#     X_aug=pd.concat(X_augmented,axis=0)
-#     return X_aug
-
-
 def augment_data(X: pd.DataFrame | np.ndarray, augmentation_factor: int = 100) -> np.ndarray:
     X = X.to_numpy() if isinstance(X, pd.DataFrame) else X
-    gen = np.random.default_rng(seed=config.RANDOM_SEED)
+    gen = np.random.default_rng(config.RANDOM_SEED)
     return np.vstack([
         bootstrap_multinomial(x, sample_size=augmentation_factor, random_generator=gen)
         for x in X
