@@ -6,7 +6,7 @@ def reconstruction_loss(targets: torch.Tensor, outputs:torch.Tensor) -> torch.Te
     return -torch.sum(targets*outputs)  # Negative log-likelihood
 
 
-def kld_loss(posterior: torch.Tensor, prior: torch.Tensor) -> torch.Tensor:
+def kld_loss(posterior: distributions.Distribution, prior: distributions.Distribution) -> torch.Tensor:
     return torch.sum(distributions.kl_divergence(posterior, prior))
 
 
@@ -19,7 +19,7 @@ def variational_loss(inputs: torch.Tensor, model: torch.Module, device: str = "c
     return nll, kld
 
 
-def standard_prior_like(posterior: distributions.Distribution):
+def standard_prior_like(posterior: distributions.Distribution) -> distributions.Distribution:
     loc = torch.zeros_like(posterior.loc)
     scale = torch.ones_like(posterior.scale)
     prior = distributions.LogNormal(loc, scale)
