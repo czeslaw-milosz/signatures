@@ -39,15 +39,15 @@ class ProdLDADecoder(nn.Module):
 class ProdLDA(nn.Module):
     def __init__(self, vocab_size: int, hidden_size: int, num_topics: int, dropout: float) -> None:
         super().__init__()
-        self.encode = ProdLDAEncoder(vocab_size, hidden_size, num_topics, dropout)
-        self.decode = ProdLDADecoder(vocab_size, num_topics, dropout)
+        self.encoder = ProdLDAEncoder(vocab_size, hidden_size, num_topics, dropout)
+        self.decoder = ProdLDADecoder(vocab_size, num_topics, dropout)
 
     def forward(self, inputs) -> tuple[torch.Tensor, torch.Tensor]:
-        posterior = self.encode(inputs)
+        posterior = self.encoder(inputs)
         if self.training:
             t = posterior.rsample().to(inputs.device)
         else:
             t = posterior.mean.to(inputs.device)
         t = t / t.sum(1, keepdim=True)
-        outputs = self.decode(t)
+        outputs = self.decoder(t)
         return outputs, posterior
