@@ -88,4 +88,5 @@ class ProdLDADecoder(nn.Module):
     def forward(self, inputs):
         inputs = self.drop(inputs)
         # the output is σ(βθ)
-        return F.softmax(self.bn(self.beta(inputs)), dim=1)
+        return F.softmax(self.beta(inputs), dim=1)
+        # return F.softmax(self.bn(self.beta(inputs)), dim=1)

@@ -1,6 +1,9 @@
 # Virtual environment
 env/
 
+# Weights & Biases storage
+wandb/
+
 # Data directory
 resources/data/
 
