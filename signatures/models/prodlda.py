@@ -1,22 +1,18 @@
-from typing import Iterable
-
 import torch
 from torch import distributions
 from torch import nn
 from torch.nn import functional as F
 
-from signatures.models import losses
-
 
 class ProdLDA(nn.Module):
-    def __init__(self, vocab_size: int, num_topics: int, hidden_size: int, dropout: float | Iterable[float, float], device: str = "cuda:0") -> None:
+    def __init__(self, vocab_size: int, num_topics: int, hidden_size: int, dropout: tuple[float], device: str = "cuda:0") -> None:
         super().__init__()
         self.vocab_size = vocab_size
         self.num_topics = num_topics
         self.hidden_size = hidden_size
-        if isinstance(self.dropout, Iterable):
+        try:
             self.encoder_dropout, self.decoder_dropout = dropout
-        else:
+        except:
             self.encoder_dropout = self.decoder_dropout = dropout
         self.encoder = ProdLDAEncoder(vocab_size, num_topics, hidden_size, self.encoder_dropout)
         self.decoder = ProdLDADecoder(vocab_size, num_topics, self.decoder_dropout)
