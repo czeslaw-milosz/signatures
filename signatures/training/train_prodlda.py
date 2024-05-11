@@ -20,11 +20,13 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         project=config.PROJECT_NAME,
         config=training_config
     )
+    torch.manual_seed(config.RANDOM_SEED)
+    logging.info(f"Initialized Weights & Biases experiment. Torch seed set to {config.RANDOM_SEED}.")
 
     num_mutation_types = len(config.COSMIC_MUTATION_TYPES)
     mutations_dataset = data_utils.MutationsDataset(
         mutations_df_path, 
-        training_config["augmentation_factor"], 
+        training_config["augmentation"], 
         num_mutation_types
     )
     data_loader = torch.utils.data.DataLoader(
@@ -33,6 +35,7 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         shuffle=True,
         pin_memory=True
     )
+    logging.info(f"Loaded mutations dataset; shape of the observation matrix: {mutations_dataset.mutation_counts.shape}")
     # mutation_counts = mutations_df.to_numpy() if isinstance(mutations_df, pd.DataFrame) else mutations_df
     # num_mutation_types = len(config.COSMIC_MUTATION_TYPES)
     # if mutation_counts.shape[1] != num_mutation_types:
@@ -43,7 +46,7 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
     if not torch.cuda.is_available():
         logging.warning("CUDA is not available, using CPU; this may be very slow!")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # mutation_counts = mutation_counts.float().to(device)
+    logging.info(f"Using device: {device}")
 
     model = prodlda.ProdLDA(
         vocab_size=num_mutation_types,
@@ -54,15 +57,17 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
     )
     model.to(device)
     wandb.watch(model)
+    logging.info(f"Initialized ProdLDA model with {training_config['num_topics']} topics.")
 
     optimizer = torch.optim.Adam(
         model.parameters(), 
-        lr=training_config["learning_rate"],
+        lr=training_config["lr"],
         betas=training_config["optimizer_betas"]
     )
 
     loss_history, nll_history, kld_history = [], [], []
 
+    logging.info(f"Starting training for {training_config['num_epochs']} epochs.")
     for epoch in range(training_config["num_epochs"]):
         logging.info(f"Epoch {epoch + 1}/{training_config['num_epochs']}")
         model.train()
@@ -70,6 +75,7 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
 
         for batch in tqdm(data_loader):
             optimizer.zero_grad()
+            batch = batch.float().to(device)
             outputs, posterior = model(batch)
             nll, kld = losses.variational_loss(
                 batch, outputs, posterior, training_config["nll_weight"], training_config["kl_weight"], device
@@ -77,9 +83,9 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
             loss = nll + kld
             loss.backward()
             optimizer.step()
-            running_loss += loss.item() / len(batch)
-            running_nll += nll.item() / len(batch)
-            running_kld += kld.item() / len(batch)
+            running_loss += loss.item()
+            running_nll += nll.item()
+            running_kld += kld.item()
 
         wandb.log({
             "train/total_loss": loss,

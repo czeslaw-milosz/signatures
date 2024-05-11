@@ -1,9 +1,10 @@
 import torch
+from torch import nn
 from torch import distributions
 
 
 def reconstruction_loss(targets: torch.Tensor, outputs:torch.Tensor) -> torch.Tensor:
-    return (-torch.sum(targets*outputs + 1e-10)).mean()  # Negative log-likelihood
+    return -torch.mean(targets*outputs + 1e-10)  # Negative log-likelihood; reduction: mean
 
 
 def kld_loss(posterior: distributions.Distribution, prior: distributions.Distribution) -> torch.Tensor:
@@ -12,7 +13,7 @@ def kld_loss(posterior: distributions.Distribution, prior: distributions.Distrib
 
 def variational_loss(
         inputs: torch.Tensor, 
-        model_outputs: torch.Module, 
+        model_outputs: nn.Module, 
         posterior: distributions.Distribution,
         nll_weight: float = 1.,
         kl_weight: float = 1.,
