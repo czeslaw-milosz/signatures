@@ -13,7 +13,7 @@ class ProdLDA(nn.Module):
         try:
             self.encoder_dropout, self.decoder_dropout = dropout
         except:
-            self.encoder_dropout = self.decoder_dropout = dropout
+            self.encoder_dropout = self.decoder_dropout = dropout[0]
         self.encoder = ProdLDAEncoder(vocab_size, num_topics, hidden_size, self.encoder_dropout)
         self.decoder = ProdLDADecoder(vocab_size, num_topics, self.decoder_dropout)
         self.device = device
