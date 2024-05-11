@@ -61,6 +61,8 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         betas=training_config["optimizer_betas"]
     )
 
+    loss_history, nll_history, kld_history = [], [], []
+
     for epoch in range(training_config["num_epochs"]):
         logging.info(f"Epoch {epoch + 1}/{training_config['num_epochs']}")
         model.train()
@@ -85,5 +87,9 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
             "train/KL_divergence": kld,
         })
         logging.info(f"Running loss: {running_loss:.3f}; NLL: {running_nll:.3f}; KLD: {running_kld:.3f}")
+        loss_history.append(running_loss)
+        nll_history.append(running_nll)
+        kld_history.append(running_kld)
 
     wandb.finish()
+    return model, loss_history, nll_history, kld_history
