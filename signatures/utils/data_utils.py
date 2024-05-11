@@ -1,5 +1,9 @@
+from typing import Any
+
 import numpy as np
 import pandas as pd
+import torch
+from torch.utils.data import Dataset, DataLoader
 
 from signatures import config
 
@@ -34,4 +38,22 @@ def normalize(X: np.ndarray) -> np.ndarray:
     return X/X.sum(axis=1, keepdims=True) * np.log2(X.sum(axis=1, keepdims=True))
 
 
-
+class MutationsDataset(Dataset):
+    def __init__(self, mutations_df_path: str, augmentation_factor: int = 100, num_mutation_types: int = 96) -> None:
+        super().__init__()
+        self.mutation_counts = load_mutation_counts(mutations_df_path)
+        assert augmentation_factor >= 0, f"Misspecified augmentation factor {augmentation_factor} < 0"
+        self.augmentation_factor = augmentation_factor
+        if self.augmentation_factor:
+            self.mutation_counts = augment_data(self.mutation_counts)
+        if isinstance(self.mutation_counts, pd.DataFrame):
+            self.mutation_counts = self.mutation_counts.to_numpy()
+        if self.mutation_counts.shape[1] != num_mutation_types:
+            self.mutation_counts = self.mutation_counts.transpose()  # expected shape: (n_samples, n_features), e.g. (569, 96)
+        assert self.mutation_counts.shape[1] == num_mutation_types, f"Expected {num_mutation_types} mutations, got {self.mutation_counts.shape[1]}"
+    
+    def __len__(self) -> int:
+        return self.mutation_counts.shape[0]
+    
+    def __getitem__(self, idx) -> Any:
+        return self.mutation_counts[idx, :]
