@@ -1,14 +1,18 @@
 import torch
 from torch import nn
 from torch import distributions
+from torch.nn import functional as F
+import torch.utils
 
 
 def reconstruction_loss(targets: torch.Tensor, outputs:torch.Tensor) -> torch.Tensor:
-    return -torch.mean(targets*outputs + 1e-10)  # Negative log-likelihood; reduction: mean
+    # return F.mse_loss(outputs, targets, reduction="sum")  # Mean squared logarithmic error
+    # return F.nll_loss(outputs, targets, reduction="sum")  # Negative log-likelihood; reduction: sum
+    return -torch.sum(targets*outputs)  # Negative log-likelihood; reduction: mean
 
 
 def kld_loss(posterior: distributions.Distribution, prior: distributions.Distribution) -> torch.Tensor:
-    return distributions.kl_divergence(posterior, prior).mean()
+    return distributions.kl_divergence(posterior, prior).sum()
 
 
 def variational_loss(
@@ -16,8 +20,7 @@ def variational_loss(
         model_outputs: nn.Module, 
         posterior: distributions.Distribution,
         nll_weight: float = 1.,
-        kl_weight: float = 1.,
-        device: str = "cuda:0") -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        kl_weight: float = 1.) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Variational loss for ProdLDA VAE.
     
     Reconstruction component: negative log-likelihood; probabilistic component: Kullback-Leibler divergence.
@@ -34,7 +37,7 @@ def variational_loss(
     """
     prior = standard_prior_like(posterior)
     nll = reconstruction_loss(inputs, model_outputs) * nll_weight
-    kld = kld_loss(posterior, prior).to(device) * kl_weight
+    kld = kld_loss(posterior, prior) * kl_weight
     return nll, kld
 
 

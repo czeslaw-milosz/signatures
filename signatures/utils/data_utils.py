@@ -46,6 +46,7 @@ class MutationsDataset(Dataset):
         self.augmentation_factor = augmentation_factor
         if self.augmentation_factor:
             self.mutation_counts = augment_data(self.mutation_counts)
+            self.mutation_counts = normalize(self.mutation_counts)
         if isinstance(self.mutation_counts, pd.DataFrame):
             self.mutation_counts = self.mutation_counts.to_numpy()
         if self.mutation_counts.shape[1] != num_mutation_types:

@@ -56,7 +56,7 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         device=device
     )
     model.to(device)
-    wandb.watch(model)
+    wandb.watch(model, log="all")
     logging.info(f"Initialized ProdLDA model with {training_config['num_topics']} topics.")
 
     optimizer = torch.optim.Adam(
@@ -68,6 +68,8 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
     loss_history, nll_history, kld_history = [], [], []
 
     logging.info(f"Starting training for {training_config['num_epochs']} epochs.")
+    # torch.autograd.set_detect_anomaly(True)
+
     for epoch in range(training_config["num_epochs"]):
         logging.info(f"Epoch {epoch + 1}/{training_config['num_epochs']}")
         model.train()
@@ -78,19 +80,25 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
             batch = batch.float().to(device)
             outputs, posterior = model(batch)
             nll, kld = losses.variational_loss(
-                batch, outputs, posterior, training_config["nll_weight"], training_config["kl_weight"], device
+                batch, outputs, posterior, training_config["nll_weight"], training_config["kl_weight"]
             )
             loss = nll + kld
             loss.backward()
+            if training_config["clip_norm"] is not None:
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), 
+                    max_norm=training_config["clip_norm"], 
+                    norm_type=2
+                )
             optimizer.step()
             running_loss += loss.item()
             running_nll += nll.item()
             running_kld += kld.item()
 
         wandb.log({
-            "train/total_loss": loss,
-            "train/reconstruction_loss": nll,
-            "train/KL_divergence": kld,
+            "train/total_loss": running_loss,
+            "train/reconstruction_loss": running_nll,
+            "train/KL_divergence": running_kld,
         })
         logging.info(f"Running loss: {running_loss:.3f}; NLL: {running_nll:.3f}; KLD: {running_kld:.3f}")
         loss_history.append(running_loss)

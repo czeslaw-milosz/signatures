@@ -22,10 +22,20 @@ class ProdLDA(nn.Module):
     def forward(self, inputs: torch.Tensor) -> tuple[torch.Tensor, distributions.Distribution]:
         posterior = self.encoder(inputs)
         if self.training:
-            z = posterior.rsample().to(inputs.device)
+            z = posterior.rsample()
+            # z = torch.inf * torch.ones_like(posterior.mean)
+            # while any(torch.isinf(z).flatten()):
+            #     z = posterior.rsample()
         else:
-            z = posterior.mean.to(inputs.device)
-        z /= z.sum(1, keepdim=True)
+            z = posterior.mean
+        # print(f"max z: {z.max()}")
+        # if any(torch.isinf(z).flatten()):
+        #     raise ValueError("Inf in the latent variables!")
+        z = F.softmax(z)
+        # if any(torch.isnan(z).flatten()):
+        #     raise ValueError("NaNs in the latent variables after softmax!")
+        # z  = z / z.sum(1, keepdim=True)
+        # print(f"z: {z}")
         outputs = self.decoder(z)
         return outputs, posterior
 
@@ -77,4 +87,4 @@ class ProdLDADecoder(nn.Module):
         inputs = self.dropout(inputs)
         # the output is σ(βθ)
         outputs = self.beta(inputs) if self.bn is None else self.bn(self.beta(inputs))
-        return F.softmax(outputs, dim=1)
+        return F.log_softmax(outputs, dim=1)
