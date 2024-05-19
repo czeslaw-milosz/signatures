@@ -23,6 +23,10 @@ class ProdLDA(nn.Module):
         posterior = self.encoder(inputs)
         if self.training:
             z = posterior.rsample()
+            if torch.isnan(z).flatten().sum() > 0:
+                raise ValueError("NaNs in the latent variables after sampling!")
+            if torch.isinf(z).flatten().sum() > 0:
+                raise ValueError("Inf in the latent variables after sampling!")
             # z = torch.inf * torch.ones_like(posterior.mean)
             # while any(torch.isinf(z).flatten()):
             #     z = posterior.rsample()
@@ -32,8 +36,8 @@ class ProdLDA(nn.Module):
         # if any(torch.isinf(z).flatten()):
         #     raise ValueError("Inf in the latent variables!")
         z = F.softmax(z)
-        # if any(torch.isnan(z).flatten()):
-        #     raise ValueError("NaNs in the latent variables after softmax!")
+        if torch.isnan(z).flatten().sum() > 0:
+            raise ValueError("NaNs in the latent variables after softmax!")
         # z  = z / z.sum(1, keepdim=True)
         # print(f"z: {z}")
         outputs = self.decoder(z)
@@ -64,6 +68,8 @@ class ProdLDAEncoder(nn.Module):
         h2 = F.softplus(self.fc2(h1))
         mu = self.bn_mu(self.fc_mu(h2))
         logvar = self.bn_logvar(self.fc_logvar(h2))
+        logvar = torch.clamp(logvar, min=-10., max=10.)
+        # print(logvar)
         dist = distributions.LogNormal(mu, (0.5 * logvar).exp())  # reparametrization; using exp(log(var)) enforces positivity
         return dist
     
@@ -71,6 +77,8 @@ class ProdLDAEncoder(nn.Module):
 class ProdLDADecoder(nn.Module):
     def __init__(self, vocab_size: int, num_topics: int, dropout: float, use_batch_norm: bool = True) -> None:
         super().__init__()
+        # self.fc1 = nn.Linear(num_topics, num_topics, bias=False)
+        # self.fc2 = nn.Linear(num_topics, num_topics, bias=False)
         self.beta = nn.Linear(num_topics, vocab_size, bias=False)
         self.bn = nn.BatchNorm1d(vocab_size, affine=False) if use_batch_norm else None
         self.dropout = nn.Dropout(dropout)
@@ -85,6 +93,8 @@ class ProdLDADecoder(nn.Module):
             torch.Tensor: should be the reconstructed matrix of observed counts.
         """        
         inputs = self.dropout(inputs)
+        # inputs = F.softplus(self.fc1(inputs))
+        # inputs = F.softplus(self.fc2(inputs))
         # the output is σ(βθ)
         outputs = self.beta(inputs) if self.bn is None else self.bn(self.beta(inputs))
-        return F.log_softmax(outputs, dim=1)
+        return F.softmax(outputs, dim=1)

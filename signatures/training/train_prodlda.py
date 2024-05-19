@@ -36,12 +36,6 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         pin_memory=True
     )
     logging.info(f"Loaded mutations dataset; shape of the observation matrix: {mutations_dataset.mutation_counts.shape}")
-    # mutation_counts = mutations_df.to_numpy() if isinstance(mutations_df, pd.DataFrame) else mutations_df
-    # num_mutation_types = len(config.COSMIC_MUTATION_TYPES)
-    # if mutation_counts.shape[1] != num_mutation_types:
-    #     mutation_counts = mutation_counts.transpose()
-    # mutation_counts = torch.from_numpy(mutation_counts)  # expected shape: (n_samples, n_features), e.g. (569, 96)
-    # assert mutation_counts.shape[1] == num_mutation_types, f"Expected {num_mutation_types} mutations, got {mutation_counts.shape[1]}"
 
     if not torch.cuda.is_available():
         logging.warning("CUDA is not available, using CPU; this may be very slow!")
@@ -74,16 +68,21 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         logging.info(f"Epoch {epoch + 1}/{training_config['num_epochs']}")
         model.train()
         running_loss = running_nll = running_kld = 0.0
+        annealing_steps = int(training_config["kl_annealing"]) or 0
+        disable_annealing = training_config["kl_annealing"] is None
+        annealer = losses.Annealer(total_steps=annealing_steps, shape="cosine", baseline=0.00001, cyclical=False, disable=disable_annealing)
 
         for batch in tqdm(data_loader):
-            optimizer.zero_grad()
             batch = batch.float().to(device)
             outputs, posterior = model(batch)
             nll, kld = losses.variational_loss(
-                batch, outputs, posterior, training_config["nll_weight"], training_config["kl_weight"]
+                batch, outputs, posterior, training_config["kl_beta"]
             )
+            kld = annealer(kld)
             loss = nll + kld
+            optimizer.zero_grad()
             loss.backward()
+
             if training_config["clip_norm"] is not None:
                 torch.nn.utils.clip_grad_norm_(
                     model.parameters(), 
@@ -91,10 +90,12 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
                     norm_type=2
                 )
             optimizer.step()
+
             running_loss += loss.item()
             running_nll += nll.item()
             running_kld += kld.item()
-
+        
+        annealer.step()
         wandb.log({
             "train/total_loss": running_loss,
             "train/reconstruction_loss": running_nll,
