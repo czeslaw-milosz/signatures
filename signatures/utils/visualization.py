@@ -1,9 +1,31 @@
 import matplotlib
 import numpy as np
+import pandas as pd
 from matplotlib import patches as mpatches
 from matplotlib import pyplot as plt
 
 from signatures import config
+
+
+# def plot_signatures(discovered_signatures: pd.DataFrame, reference_signatures: pd.DataFrame) -> None:
+#     fig, axs = plt.subplots(len(discovered_signatures.columns), 2)
+#     fig.suptitle("ProdLDA-discovered signatures vs. cosine-nearest COSMIC signatures")
+#     plt.rcParams["figure.dpi"] = 240
+#     plt.rcParams['figure.figsize'] = [6.4, 8]
+#     for i in range()
+
+
+#     plt.rcParams["figure.dpi"] = 240
+#     plt.rcParams['figure.figsize'] = [6.4, 8]
+#     fig, axs = plt.subplots(len(discovered_plots), 2)
+#     fig.suptitle("ProbLDA-discovered signatures vs. cosine-nearest COSMIC signatures")
+#     for i in range(len(discovered_plots)):
+#         axs[i,0].imshow(discovered_plots[i])
+#         axs[i,0].axis("off")
+#         axs[i,0].text(0.7, 0.7, f"cos similarity: {str(round(nearest_signatures[i][1], 2))}", size=8)
+#         axs[i,1].imshow(mpimg.imread(f"./data/cosmic/plots/{nearest_signatures[i][0]}.png"))
+#         axs[i,1].axis("off")
+#     plt.savefig(config.SIGNATURES_PLOT_PATH)
 
 
 def plot_signature(signature_array: np.ndarray, axs: matplotlib.axes.Axes | None = None, text: str = "") -> None:
