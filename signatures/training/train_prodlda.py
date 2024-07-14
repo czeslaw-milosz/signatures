@@ -16,10 +16,10 @@ logging.basicConfig(level=logging.INFO)
 
 
 def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
-    wandb.init(
-        project=config.PROJECT_NAME,
-        config=training_config
-    )
+    # wandb.init(
+    #     project=config.PROJECT_NAME,
+    #     config=training_config
+    # )
     torch.manual_seed(config.RANDOM_SEED)
     logging.info(f"Initialized Weights & Biases experiment. Torch seed set to {config.RANDOM_SEED}.")
 
@@ -50,7 +50,7 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         device=device
     )
     model.to(device)
-    wandb.watch(model, log="all")
+    # wandb.watch(model, log="all")
     logging.info(f"Initialized ProdLDA model with {training_config['num_topics']} topics.")
 
     optimizer = torch.optim.Adam(
@@ -58,6 +58,7 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         lr=training_config["lr"],
         betas=training_config["optimizer_betas"]
     )
+    # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.1, steps_per_epoch=445, epochs=100)
 
     loss_history, nll_history, kld_history = [], [], []
 
@@ -70,7 +71,8 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         running_loss = running_nll = running_kld = 0.0
         annealing_steps = int(training_config["kl_annealing"]) or 0
         disable_annealing = training_config["kl_annealing"] is None
-        annealer = losses.Annealer(total_steps=annealing_steps, shape="cosine", baseline=0.00001, cyclical=False, disable=disable_annealing)
+        kl_base_rate = training_config["kl_base_rate"]
+        annealer = losses.Annealer(total_steps=annealing_steps, shape="cosine", baseline=kl_base_rate, cyclical=False, disable=disable_annealing)
 
         for batch in tqdm(data_loader):
             batch = batch.float().to(device)
@@ -90,21 +92,23 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
                     norm_type=2
                 )
             optimizer.step()
+            # scheduler.step()
 
             running_loss += loss.item()
             running_nll += nll.item()
             running_kld += kld.item()
         
         annealer.step()
-        wandb.log({
-            "train/total_loss": running_loss,
-            "train/reconstruction_loss": running_nll,
-            "train/KL_divergence": running_kld,
-        })
+        # wandb.log({
+        #     "train/total_loss": running_loss,
+        #     "train/reconstruction_loss": running_nll,
+        #     "train/KL_divergence": running_kld,
+        #     "train/lr": optimizer.param_groups[0]["lr"]
+        # })
         logging.info(f"Running loss: {running_loss:.3f}; NLL: {running_nll:.3f}; KLD: {running_kld:.3f}")
         loss_history.append(running_loss)
         nll_history.append(running_nll)
         kld_history.append(running_kld)
 
-    wandb.finish()
+    # wandb.finish()
     return model, loss_history, nll_history, kld_history

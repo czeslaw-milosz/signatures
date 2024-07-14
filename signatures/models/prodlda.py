@@ -42,6 +42,9 @@ class ProdLDA(nn.Module):
         # print(f"z: {z}")
         outputs = self.decoder(z)
         return outputs, posterior
+    
+    def beta(self) -> torch.Tensor:
+        return self.decoder.beta.weight.data
 
 
 class ProdLDAEncoder(nn.Module):

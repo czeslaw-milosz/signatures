@@ -29,6 +29,7 @@ logging.basicConfig(level=logging.INFO)
 @click.option("--hidden_size", default=128, help="Hidden size of the encoder.")
 @click.option("--kl_beta", default=1.0, help="Weight of the KL divergence term in the variational loss.")
 @click.option("--kl_annealing", default=None, help="Number of epochs for KL to reach full weight when annealing. None means no annealing.")
+@click.option("--kl_base_rate", default=0.00001, help="Initial weight for the KL divergence term (used only when annealing is enabled).")
 @click.option("--clip_norm", default=None, help="Value to clip the gradient norm.")
 @click.option("--optimizer_betas", multiple=True, default=(0.95, 0.999), help="Betas for the Adam optimizer.")
 @click.option("--save_model", default=config.SAVE_MODEL, help="Whether to save the trained model.")
@@ -38,6 +39,18 @@ def main(**kwargs):
     logging.info(f"Loaded cosmic signatures; shape: {cosmic.shape}")
     logging.info(f"Experiment configuration: {experiment_config}")
     model, loss_history, nll_history, kld_history = train_prodlda.train_prodlda(kwargs["input_path"], experiment_config)
+
+    if config.SAVE_MODEL:
+        torch.save(model.state_dict(), config.PRODLDA_MODEL_PATH)
+    
+    P = model.beta()
+    P_prob = F.softmax(P, dim=1).detach().cpu().numpy().transpose()
+    logging.info(f"Discovered signatures; shape: {P_prob.shape}")
+    nearest_signatures = evaluation.get_nearest_signatures(P_prob, cosmic)
+    print(sorted(list(nearest_signatures.items()), key=lambda x: x[1][1], reverse=True))
+    discovered_signatures = pd.DataFrame(P_prob.transpose(), index=pd.Index(data=cosmic.index, name="Type"))
+    discovered_signatures.to_csv(f"resources/experiments/{config.EXPERIMENT_NAME}_discovered_signatures.csv")
+    
 
 
 if __name__ == "__main__":
