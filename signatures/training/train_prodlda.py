@@ -16,10 +16,10 @@ logging.basicConfig(level=logging.INFO)
 
 
 def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
-    # wandb.init(
-    #     project=config.PROJECT_NAME,
-    #     config=training_config
-    # )
+    wandb.init(
+        project=config.PROJECT_NAME,
+        config=training_config
+    )
     torch.manual_seed(config.RANDOM_SEED)
     logging.info(f"Initialized Weights & Biases experiment. Torch seed set to {config.RANDOM_SEED}.")
 
@@ -50,7 +50,7 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
         device=device
     )
     model.to(device)
-    # wandb.watch(model, log="all")
+    wandb.watch(model, log="all")
     logging.info(f"Initialized ProdLDA model with {training_config['num_topics']} topics.")
 
     optimizer = torch.optim.Adam(
@@ -99,16 +99,16 @@ def train_prodlda(mutations_df_path: str, training_config: dict[str, Any]):
             running_kld += kld.item()
         
         annealer.step()
-        # wandb.log({
-        #     "train/total_loss": running_loss,
-        #     "train/reconstruction_loss": running_nll,
-        #     "train/KL_divergence": running_kld,
-        #     "train/lr": optimizer.param_groups[0]["lr"]
-        # })
+        wandb.log({
+            "train/total_loss": running_loss,
+            "train/reconstruction_loss": running_nll,
+            "train/KL_divergence": running_kld,
+            "train/lr": optimizer.param_groups[0]["lr"]
+        })
         logging.info(f"Running loss: {running_loss:.3f}; NLL: {running_nll:.3f}; KLD: {running_kld:.3f}")
         loss_history.append(running_loss)
         nll_history.append(running_nll)
         kld_history.append(running_kld)
 
-    # wandb.finish()
+    wandb.finish()
     return model, loss_history, nll_history, kld_history
