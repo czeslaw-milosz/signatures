@@ -1,8 +1,6 @@
-import logging
 from typing import Any
 
 import torch
-import transformers
 from transformers import AutoTokenizer, AutoModel
 from transformers.models.bert.configuration_bert import BertConfig
 
@@ -12,7 +10,6 @@ def get_dna_embeddings(dna_batch: torch.Tensor, model: torch.Module, tokenizer: 
     tokenized_batch = tokenizer(dna_batch, return_tensors="pt")["input_ids"]
     hidden_states = model(tokenized_batch)[0]  # shape: [batch_size, seq_length, embedding_dim]
     return torch.mean(hidden_states, dim=1) if embedding_type == "mean" else torch.max(hidden_states, dim=1)[0]
-
 
 
 def load_dnabert2(force_download: bool = False):
