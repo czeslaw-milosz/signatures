@@ -1,13 +1,14 @@
 from typing import Any
 
+import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModel
 from transformers.models.bert.configuration_bert import BertConfig
 
 
-def get_dna_embeddings(dna_batch: torch.Tensor, model: torch.Module, tokenizer: Any, embedding_type: str = "mean") -> torch.Tensor:
+def get_dna_embeddings(dna_batch: np.ndarray, model: Any, tokenizer: Any, embedding_type: str = "mean") -> torch.Tensor:
     assert embedding_type in {"mean", "max"}, f"Unsupported embedding type: {embedding_type}"
-    tokenized_batch = tokenizer(dna_batch, return_tensors="pt")["input_ids"]
+    tokenized_batch = tokenizer(dna_batch, return_tensors="pt", padding=True)["input_ids"].to(model.device)
     hidden_states = model(tokenized_batch)[0]  # shape: [batch_size, seq_length, embedding_dim]
     return torch.mean(hidden_states, dim=1) if embedding_type == "mean" else torch.max(hidden_states, dim=1)[0]
 
